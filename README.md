@@ -113,7 +113,6 @@ sudo apt update
 sudo apt install python3-pip -y
 ```
 ```bash
-sudo apt install python3-boto -y
 sudo apt install python3-boto3 -y
 ```
 ##### > Install Ansible and amazon.aws collection:
