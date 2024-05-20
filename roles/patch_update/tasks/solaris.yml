@@ -1,0 +1,9 @@
+---
+- name: Update package cache for Solaris
+  become: true
+  shell: pkg refresh
+
+- name: Apply security updates for Solaris
+  become: true
+  shell: pkg update --accept
+

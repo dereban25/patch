@@ -1,0 +1,6 @@
+- name: Apply security updates for (Debian-based)
+  apt:
+    upgrade: safe
+    autoremove: yes
+    autoclean: yes
+  become: true

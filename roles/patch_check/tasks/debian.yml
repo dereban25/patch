@@ -1,0 +1,17 @@
+- name: Update package cache for (Debian-based)
+  apt:
+    update_cache: yes
+  become: true
+
+- name: Check updates for (Debian-based)
+  apt:
+    upgrade: safe
+    autoremove: yes
+    autoclean: yes
+  become: true
+  register: debian_update_check
+  check_mode: yes
+
+# - name: Debug debian_update_check variable
+#   debug:
+#     msg: "{{ debian_update_check.stdout_lines | regex_search('(\\d+) upgraded') | regex_search('(\\d+)') | int > 0 }}"

@@ -1,0 +1,11 @@
+- name: Include PATCH CHECKS tasks for RedHat OS Family
+  include_tasks: rhel.yml
+  when: ansible_os_family == "RedHat"
+
+- name: Include PATCH CHECKS tasks for Debian OS Family
+  include_tasks: debian.yml
+  when: ansible_os_family == "Debian"
+
+- name: Include PATCH UPDATE tasks for Solaris OS Family
+  include_tasks: solaris.yml
+  when: ansible_os_family == "Solaris"

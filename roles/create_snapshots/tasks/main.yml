@@ -1,0 +1,31 @@
+- name: Get EC2 instance information
+  ec2_instance_info:
+    region: "{{ aws_region }}"
+    instance_ids:
+      - "{{ instance_id }}"
+  register: ec2_instance
+  delegate_to: "{{ ansible_server_id }}"
+
+- name: Create snapshot for root volume
+  amazon.aws.ec2_snapshot:
+    volume_id: "{{ ec2_instance.instances[0].block_device_mappings[0].ebs.volume_id }}"
+    snapshot_tags: 
+      Name: Patching
+    description: "Snapshot of root volume"
+    region: "{{ aws_region }}"
+  register: snapshots_info
+  when: ec2_instance.instances[0].block_device_mappings[0].ebs.volume_id is defined
+  delegate_to: "{{ ansible_server_id }}"
+
+# - name: Create snapshots for all volumes
+#   ec2_snapshot:
+#     volume_id: "{{ item.ebs.volume_id }}"
+#     snapshot_tags: 
+#       Name: Patching
+#     description: "Snapshot of {{ item.ebs.volume_id }}"
+#     region: "{{ aws_region }}"
+#     last_snapshot_min_age: 60
+#   loop: "{{ ec2_instance.instances[0].block_device_mappings }}"
+#   when: item.ebs.volume_id is defined
+#   register: snapshots_info
+#   delegate_to: "{{ ansible_server_id }}"

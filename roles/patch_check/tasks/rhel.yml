@@ -1,0 +1,6 @@
+- name: Check for available updates (Red Hat-based)
+  become: true
+  yum:
+    list: updates
+  register: redhat_update_check
+  check_mode: yes

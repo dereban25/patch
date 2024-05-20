@@ -1,0 +1,10 @@
+- name: Delete snapshots for all volumes
+  ec2_snapshot:
+    snapshot_tags:
+      Name: Patching
+    region: "{{ aws_region }}"
+    snapshot_id: "{{ item.snapshot_id }}"
+    state: absent
+  with_items: "{{ snapshots_info.snapshots }}"
+  delegate_to: "{{ ansible_server_id }}"
+  # ignore_errors: true
