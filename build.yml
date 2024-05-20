@@ -1,0 +1,36 @@
+- name: Apply Security Updates and Recover from Snapshots
+  hosts: all
+  vars_files:
+    - vars/main.yml
+  roles:
+    - patch_check
+    - role: create_snapshots
+      when:
+        - (debian_update_check is defined and 
+          debian_update_check.stdout_lines | 
+          regex_search('(\\d+) upgraded') | 
+          regex_search('(\\d+)') | 
+          int > 0) or
+          (redhat_update_check is defined and 
+          redhat_update_check.results|
+          length > 0)
+    - role: patch_update
+      when:
+        - (debian_update_check is defined and 
+          debian_update_check.stdout_lines | 
+          regex_search('(\\d+) upgraded') | 
+          regex_search('(\\d+)') | int > 0) or
+          (redhat_update_check is defined and 
+          redhat_update_check.results |
+          length > 0)
+    - destroy_system # JUST FOR TESTING. DELETE THIS ROLE
+    - role: rollback
+      when:
+        - reboot_completed is defined
+        - reboot_completed is failed
+    - role: delete_snapshots
+      when:
+        - (successfully_recovered is defined and
+          successfully_recovered is changed) or
+          (reboot_completed is defined and
+          reboot_completed is changed)

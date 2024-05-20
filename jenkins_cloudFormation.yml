@@ -1,0 +1,107 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: AWS CloudFormation Template for creating an EC2 instance with Jenkins
+Parameters:
+  VpcId:
+    Description: VPC ID
+    Type: AWS::EC2::VPC::Id
+  InstanceType:
+    Description: EC2 instance type
+    Type: String
+    Default: t2.micro
+  ImageId:
+    Description: AMI ID
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2
+  AllowCidrIp:
+    Description: CIDR IP range for SSH and Jenkins
+    Type: String
+    Default: 0.0.0.0/0
+  KeyName:
+    Description: Amazon EC2 Key Pair
+    Default: "jenkins"
+    Type: "AWS::EC2::KeyPair::KeyName"
+  SubnetId:
+    Description: Subnet ID
+    Type: AWS::EC2::Subnet::Id
+  InstanceName:
+    Description: The name of the instance
+    Type: String
+    Default: Jenkins
+Resources:
+  JenkinsVolume:
+    Type: 'AWS::EC2::Volume'
+    Properties:
+      Size: 2
+      AvailabilityZone: !Select [0, !GetAZs '']
+
+  EC2Instance:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      InstanceType: !Ref InstanceType
+      ImageId: !Ref ImageId
+      KeyName: !Ref KeyName
+      IamInstanceProfile: !Ref InstanceProfile
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          sudo su -
+          yum update -y
+          amazon-linux-extras install java-openjdk11 -y
+          wget -O /etc/yum.repos.d/jenkins.repo https://pkg.jenkins.io/redhat-stable/jenkins.repo
+          rpm --import https://pkg.jenkins.io/redhat-stable/jenkins.io-2023.key
+          yum install jenkins -y
+          systemctl enable jenkins
+          systemctl start jenkins
+          sudo wget -O /var/lib/jenkins/jenkins-cli.jar http://localhost:8080/jnlpJars/jenkins-cli.jar
+
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: true  # Enable public IP
+          DeviceIndex: 0
+          GroupSet:
+            - !GetAtt JenkinsSecurityGroup.GroupId
+          SubnetId: !Ref SubnetId
+      Tags:
+        - Key: Name
+          Value: !Ref InstanceName
+      BlockDeviceMappings:
+        - DeviceName: '/dev/sdf'
+          Ebs:
+            VolumeType: 'gp2'
+            VolumeSize: 2
+  InstanceProfile:  # IAM instance profile
+    Type: 'AWS::IAM::InstanceProfile'
+    Properties:
+      Path: "/"
+      Roles:
+        - !Ref InstanceRole
+  InstanceRole:  # IAM role
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: !Sub "${AWS::StackName}-InstanceRole"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Path: "/"
+      ManagedPolicyArns:  # Attach the AmazonEC2RoleforSSM managed policy
+        - 'arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforSSM'
+        # - 'arn:aws:iam::aws:policy/service-role/AmazonEC2FullAccess'
+  JenkinsSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: Security Group for Jenkins EC2 instance
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: !Ref AllowCidrIp
+        - IpProtocol: tcp
+          FromPort: 8080
+          ToPort: 8080
+          CidrIp: !Ref AllowCidrIp
